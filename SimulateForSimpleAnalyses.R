@@ -77,3 +77,46 @@ store.df$p2sales <- floor(tmp.sales2 * (1 + store.df$p2prom * 0.4))
 head(store.df)
 library(car)
 some(store.df)
+
+
+# Discrete variables:
+# Use table() to summarize certain set of data:
+table(store.df$p1price)
+p1.table <- table(store.df$p1price)
+str(p1.table)
+plot(p1.table)
+
+# Cross-tabs when include 2nd variable in table():
+table(store.df$p1price, store.df$p1prom)
+# At each price level, P1 seems to have been discounted ~10% of the time. (as specified when 
+# creating our data set).
+# Calculate fraction of promotions at each price level: 
+p1.table2 <- table(store.df$p1price, store.df$p1prom)
+p1.table2[ , 2] / (p1.table2[ , 1] + p1.table2[ , 2])
+# all fractions ~10%
+
+# Continuous variables, use distribution functions: 
+min(store.df$p1sales)
+max(store.df$p1sales)
+mean(store.df$p1prom)
+median(store.df$p2sales)
+var(store.df$p1sales)
+sd(store.df$p1sales)
+IQR(store.df$p1sales)
+store.df$p1sales %>% mad()
+store.df$p1sales %>% quantile(probs = c(0.25, 0.5, 0.75))
+# Customize quantiles by 0:10 / 10 or seq(from = 0, to = 1, by = 0.1)
+
+# For skewed and assymetric distributions (unit sales, household income, etc.) usage of median 
+# and interquartile range are more useful for summarizing data. 
+# Create neat summarizations using a data frame: 
+mysummary.df <- data.frame(matrix(NA, nrow = 2, ncol = 2))
+names(mysummary.df) <- c("Median Sales", "IQR")
+rownames(mysummary.df) <- c("Product 1", "Product 2")
+mysummary.df["Product 1", "Median Sales"] <- median(store.df$p1sales)
+mysummary.df["Product 2", "Median Sales"] <- median(store.df$p2sales)
+mysummary.df["Product 1", "IQR"] <- IQR(store.df$p1sales)
+mysummary.df["Product 2", "IQR"] <- IQR(store.df$p2sales)
+mysummary.df
+
+
