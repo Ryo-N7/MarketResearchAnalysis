@@ -119,4 +119,77 @@ mysummary.df["Product 1", "IQR"] <- IQR(store.df$p1sales)
 mysummary.df["Product 2", "IQR"] <- IQR(store.df$p2sales)
 mysummary.df
 
+summary(store.df)
+summary(store.df$Year)
+summary(store.df, digits = 2)
+
+install.packages("psych")
+library(psych)
+# Use describe():
+# useful for viewing skew, kurtosis, trimmed mean. 
+# Survey data with discrete values (1-7 Likert scales...)
+# * denotes that summary statistics not valid for these variables. 
+describe(store.df)
+describe(store.df[ , c(4:9)])   # Only show relevant columns! 
+
+# Using apply():
+apply(store.df[ , 4:9], MARGIN = 2, FUN = mean)
+apply(store.df[ , 4:9], MARGIN = 2, FUN = sd)
+apply(store.df[ , 4:9], MARGIN = 2, FUN = sum)
+
+mysummary2.df <- data.frame(matrix(NA, nrow = 2, ncol = 2))
+names(mysummary2.df) <- c("Median Sales", "IQR")
+rownames(mysummary2.df) <- names(store.df)[4:5]
+mysummary2.df[ , "Median Sales"] <- apply(store.df[ , 4:5], 2, median)
+mysummary2.df[ , "IQR"] <- apply(store.df[ , 4:5], 2, IQR)
+mysummary2.df
+# With apply(), takes 5 lines compared to 7 lines of code to create custom summary data frame!
+
+# Visualization:
+library(ggplot2)
+library(ggthemes)
+library(tidyverse)
+
+ggplot(store.df, aes(x = p1sales)) + geom_histogram(binwidth = 10, fill = "red") + 
+  ggtitle("Weekly Sales Frequencies", subtitle = "Product 1, All Stores") +
+  theme_economist_white() +
+  xlab("Product 1 Sales (Units)") +
+  ylab("Frequency") 
+
+ggplot(store.df, aes(x = p2sales, y = p2sales)) + geom_boxplot() +
+  ggtitle("Weekly Sales", subtitle = "Product 2, All Stores") +
+  xlab("Product 2") + ylab("Weekly Sales") +
+  coord_flip() +
+  theme(axis.text.y = element_blank())
+
+# Weekly Sales of Product 2 by Store
+
+store.df %>% 
+  as.numeric(unlist(store.num)) %>% 
+  ggplot(aes(x = p2sales, y = storeNum)) + geom_boxplot() +
+  ggtitle("Weekly Sales of Product 2 by Store") +
+  ylab("Store") + xlab("Weekly unit sales")
+
+str(store.df)
+ls()
+exists(store.num)
+
+as.numeric(store.df$storeNum)
+ggplot(store.df, aes(y = p2sales, x = storeNum)) + geom_boxplot() +
+  ggtitle("Weekly Sales of Product 2 by Store") +
+  xlab("Store") + ylab("Weekly unit sales") +
+  coord_flip()
+
+store.df %>% 
+  ggplot(aes(x = storeNum, y = p2sales)) + geom_boxplot() +
+  ggtitle("Weekly Sales of Product 2 by Store") +
+  xlab("Store") + ylab("Weekly unit sales") +
+  coord_flip()
+
+boxplot(p2sales ~ p2prom, data = store.df, horizontal = TRUE, yaxt = "n", 
+        ylab = "P2 promoted in store?", xlab = "Weekly sales",
+        main = "Weekly sales of P2 with and without promotion")
+axis(side = 2, at = c(1,2), labels = c("No", "YES"))
+# MORE sales when P2 promotion discount! 
+
 
