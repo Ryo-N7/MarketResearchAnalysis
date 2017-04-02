@@ -192,4 +192,15 @@ boxplot(p2sales ~ p2prom, data = store.df, horizontal = TRUE, yaxt = "n",
 axis(side = 2, at = c(1,2), labels = c("No", "YES"))
 # MORE sales when P2 promotion discount! 
 
+store.df %>% 
+  ggplot(aes(x = p2prom, y = p2sales, group = p2prom)) + geom_boxplot() +
+  ggtitle("Weekly sales of P2 with and without promotion") +
+  xlab("P2 promoted in store?") + ylab("Weekly sales") +
+  coord_flip() +
+  scale_x_continuous(breaks = 0:1, labels = c("NO","YES"))
 
+ggplot(store.df, aes(x = p2prom, y = p2sales, group = p2prom)) + geom_boxplot() +
+  ggtitle("Weekly sales of P2 with and without promotion") +
+  xlab("P2 promoted in store?") + ylab("Weekly sales") +
+  coord_flip() +
+  scale_x_continuous(breaks = 0:1, labels = c("0.0" = "NO","1.0" = "YES"))
