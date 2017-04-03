@@ -216,7 +216,7 @@ qqnorm(log(store.df$p1sales))
 qqline(log(store.df$p1sales))
 # Better! Closer to normal distribution
 
-# ECDF graphs: 
+# Empirical Cumulative Distribution Function (ECDF) graphs: 
 ggplot(store.df, aes( x = p2sales)) + stat_ecdf()
 
 # Investigate 90 Percentile:
@@ -226,11 +226,45 @@ library(scales)
 
 ggplot(store.df, aes(x = p1sales)) + stat_ecdf(geom = "step") + 
   scale_y_continuous(breaks = pretty_breaks(n = 10), labels = percent) +
+  scale_x_continuous(breaks = pretty_breaks(n = 10)) +
   theme_economist() +
-  ylab("Cumulative Proportion") + xlab("P2 Weekly Sales") +
+  ylab("Cumulative Proportion") + xlab("P2 Weekly Sales \n (Units)") +
   geom_hline(yintercept = 1.0, size = 1) +
-  geom_hline(yintercept = 0.9) +
-  geom_vline(xintercept = 170) +
-  annotate("text", x = 240, y = 0.6, label = "90% of weeks sold =< 170 units")
+  geom_hline(yintercept = 0.9, color = "grey", size = 1.5) +
+  geom_vline(xintercept = 170, color = "grey", size = 1.5) +
+  annotate("text", x = 230, y = 0.6, label = "90% of weeks sold =< 170 units")
 
+# Aggregate by country:
+library(tidyverse)
+
+store.df %>% 
+  select(p1sales, storeNum) %>% 
+  filter(country)
+
+p1_mean_sales <- (store.df %>% 
+  group_by(country) %>% 
+  summarize(mean_sales = mean(p1sales)) %>% 
+  arrange(desc(mean_sales)))
+
+p1_total_sales <- (store.df %>% 
+                    group_by(country) %>% 
+                    summarize(total_sales = sum(p1sales)) %>% 
+                    arrange(desc(total_sales)))
+p1_total_sales
+
+p1sales.sum <- aggregate(store.df$p1sales,
+                         by = list(country = store.df$country), sum)
+
+# World Map visualization:
+install.packages(c("rworldmap", "RColorBrewer"))
+library(rworldmap)
+library(RColorBrewer)
+
+p1_sales_map <- joinCountryData2Map(p1sales.sum, joinCode = "ISO2", 
+                                    nameJoinColumn = "country")
+
+mapCountryData(p1_sales_map, nameColumnToPlot = "x", 
+               mapTitle = "Total P1 Sales by Country", 
+               colourPalette = brewer.pal(7, "Greens"),
+               catMethod = "fixedWidth", addLegend = FALSE)
 
