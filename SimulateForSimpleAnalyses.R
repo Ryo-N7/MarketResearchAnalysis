@@ -204,3 +204,33 @@ ggplot(store.df, aes(x = p2prom, y = p2sales, group = p2prom)) + geom_boxplot() 
   xlab("P2 promoted in store?") + ylab("Weekly sales") +
   coord_flip() +
   scale_x_continuous(breaks = 0:1, labels = c("0.0" = "NO","1.0" = "YES"))
+
+# QQ plot for normal distributions: 
+
+qqnorm(store.df$p1sales)
+qqline(store.df$p1sales)
+# Upward curve from normality line at the ends, high positive skew 
+
+# log transform data:
+qqnorm(log(store.df$p1sales))
+qqline(log(store.df$p1sales))
+# Better! Closer to normal distribution
+
+# ECDF graphs: 
+ggplot(store.df, aes( x = p2sales)) + stat_ecdf()
+
+# Investigate 90 Percentile:
+quantile(store.df$p1sales, probs = c(0.9))    # 170 units 
+
+library(scales)
+
+ggplot(store.df, aes(x = p1sales)) + stat_ecdf(geom = "step") + 
+  scale_y_continuous(breaks = pretty_breaks(n = 10), labels = percent) +
+  theme_economist() +
+  ylab("Cumulative Proportion") + xlab("P2 Weekly Sales") +
+  geom_hline(yintercept = 1.0, size = 1) +
+  geom_hline(yintercept = 0.9) +
+  geom_vline(xintercept = 170) +
+  annotate("text", x = 240, y = 0.6, label = "90% of weeks sold =< 170 units")
+
+
