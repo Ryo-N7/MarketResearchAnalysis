@@ -32,6 +32,10 @@ segSDs <- matrix(c(
 # Ex. Travelers segment: mean = 58, SD = 8, ~50% = male, avg. income = 64000, SD income = 21000. 
 # Separate data definition and procedural code = ^ease change definitions. 
 
+
+
+
+
 # Loops: 
 # Usage for() loops to iterate over variables and segments as structure of random draws = similar
 # Ex. 
@@ -50,6 +54,88 @@ for (i in 1:length(i.seq)) {cat("Entry", i , "=", i.seq[i], "\n")}
 # >>>>> instead of
 for (i in 1:length(i.seq)) {cat("Entry", i, "-", i.seq[i], "\n")}
 # as, IF i.seq = NULL, then ERROR! 
+
+
+
+
+# if() statements:
+# Ex. 
+if(condition1) {
+  statements
+} else if (condition2) {
+  statements
+} else {
+  statements
+}
+
+# Condition: evaluates to TRUE or FALSE
+# Conditional evaluation on EVERY element of vector, use ifelse()
+# Ex. 
+x <- 1:5
+ifelse(x > 1, "hi", "bye")
+
+
+
+# Segment data generation: 
+
+# Set up data frame "seg.df" and pseudorandom number sequence
+# For each SEGMENT i in "segNames" {
+#   Set up a temporary data frame "this.seg" for this SEGMENT's data
+#   For each VARIABLE j in "segVars" {
+#     Use nested if() on "segVarType[j]" to determine data type for VARIABLE
+#     Use segMeans[i, j] and sedSDs[i, j] to
+#     ... Draw random data for VARIABLE (within SEGMENT) with
+#     ... "segSize[i]" observations
+#   }
+#   Add this SEGMENT's data ("this.seg") to the overall data ("seg.df")
+# }
+
+seg.df <- NULL
+set.seed(02554)
+# iterate over segments and create data for each 
+for (i in seq_along(segNames)) {
+  cat(i, segNames[i], "\n")
+  
+  # Create empty matrix to hold particular segment's data
+  this.seg <- data.frame(matrix(NA, nrow = segSize[i], ncol = length(segVars)))
+  
+  # Within segment, iterate over variables and draw appropriate random data
+  for (j in seq_along(segVars)) { # and iterate over each variable
+    if (segVarType[j] == "norm") {# draw random normals
+      this.seg[, j] <- rnorm(segSize[i], mean = segMeans[i, j], sd = segSDs[i, j])
+    } else if (segVarType[j] == "pois") { # draw counts
+      this.seg[, j] <- rpois(segSize[i], lambda = segMeans[i, j])
+    } else if (segVarType[j] == "binom") {# draw binomials
+      this.seg[, j] <- rbinom(segSize[i], size = 1, prob = segMeans[i, j])
+    } else {
+      stop("Bad segment data type: ", segVarType[j])
+    }}
+}
+
+# add segment to total dataset
+seg.df <- rbind(seg.df, this.seg)
+
+# Explanation: 
+# according to data type (norm, pois, binom), use appropriate RNG function (rnorm, rpois, rbinom).
+# all values for variable in segment drawn from single command, length specified by segSize[i]
+# Predefine data frame "this.seg", preallocating allows for smoother memory processing + RNG draws into segment at once, error checking
+# Filling objects with NA = error check for missing values when we expect data filled in
+# Stop() command executes in case data type NOT match expected. Quick error string shown. 
+
+names(seg.df) <- segVars
+seg.df$Segment <- factor(rep(segNames, times = segSize))
+seg.df$ownHome <- factor(seg.df$ownHome, labels = c("ownNo", "ownYes"))
+seg.df$gender <- factor(seg.df$gender, labels = c("Female", "Male"))
+seg.df$subscribe <- factor(seg.df$subscribe, labels = c("subNo", "subYes"))
+
+summary(seg.df)
+
+
+
+
+
+
+
 
 
 
