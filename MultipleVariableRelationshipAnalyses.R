@@ -4,6 +4,7 @@ library(tidyverse)
 library(ggplot2)
 library(ggthemes)
 library(scales)
+library(grid)
 
 set.seed(21821)
 ncust <- 1000
@@ -139,6 +140,9 @@ print(hist2, vp = viewport(layout.pos.row = 1, layout.pos.col = 2))
 graphics.off()
 
 ggplot(cust.df, aes(store.spend, online.spend)) + geom_point()
+
+
+# Log scales:
 # Hard to distinguish due to skew of non-spenders (store and online)
 
 my.col <- c(I("black"), I("green3"))
@@ -147,12 +151,14 @@ as.numeric(cust.df$email)
 # my.col[as.numeric(cust.df$email)]
 my.col[cust.df$email]
 
+# Fix using log scale!
+# use ~spend + 1 to avoid log(0) = NaN error. 
 log.store.spend <- log(cust.df$store.spend + 1)
 log.online.spend <- log(cust.df$online.spend + 1)
 
 ggplot(cust.df, aes(x = log.store.spend, y = log.online.spend)) + 
   geom_point(aes(colour = email)) + scale_color_manual(values = c("black", "green3"))
-# Fix using log scale! 
+ 
 ?scale_fill_discrete
 
 ?geom_point()
@@ -163,8 +169,122 @@ plot(cust.df$store.spend + 1, cust.df$online.spend + 1,
 
 
 # Correlations:
+# Covariance using cov():
+cust.df %>% 
+  summarize(cov(age, credit.score))
+
+cov(cust.df$age, cust.df$credit.score)
+# covariance interpretation dependent on scales of variables
+cor.test(cust.df$age, cust.df$credit.score)
+
+cust.df %>% 
+  summarize(cor(age, credit.score)) # 0.25, ~medium size effect (Cohen's)
+# Statistically significant??
+cust.df %>% 
+  summarize(cor.test(age, credit.score)$p.value) # 4.441e^-16 (SIGNIFICANT)
 
 
+# Correlation matrix: pass multiple variables into the cor() function.
+cor(cust.df[ , c(2, 3, 5:12)])
+cor(cust.df[ , c(2, 3, 5:12)], use = "complete.obs") # instruct R use only cases without NA values...
+
+# Use Correlation matrices charts:
+install.packages("corrplot")
+install.packages("gplots")
+library(corrplot)
+library(gplots)
+
+corrplot.mixed(corr = cor(cust.df[ , c(2, 3, 5:12)], use = "complete.obs"), 
+               upper = "ellipse", t1.pos = "n",
+               col = colorpanel(50, "red", "grey60", "blue4"))
+
+# Correlation 'r' coefficient measures LINEAR associations. Misleading interpretations for NON-linear .
+# Many marketing data relationships = nonlinear, necessary to transform variables for proper correlation measurements.
+# Ex. 
+set.seed(49931)
+x <- runif(1000, min = -10, max = 10)
+x
+plot(x, x^2)  # Show perfect nonlinear relationship.
+cor(x, x^2)   # -0.00367~      ???? relationship not accurately shown by correlation measure...
+
+# Correlation ~0 despite perfect nonlinear relationship!  
+
+# Correlation: Distance to store  &  store spend??
+cor(cust.df$distance.to.store, cust.df$store.spend)         # -0.2414949, modest negative correlation.
+
+# IF transform using INVERSE (1/distance) or INVERSE SQRT (1/sqrt(distance)), LARGER association! 
+cor(1/cust.df$distance.to.store, cust.df$store.spend)       # +0.4295245
+cor(1/sqrt(cust.df$distance.to.store), cust.df$store.spend) # +0.4750991
+
+# Interpretations:
+# Inverse sqrt: customer live 1 mile away = spend MORE than customer live 5 miles away, however
+# customer living 20 miles away will only buy slightly more than customer living 30 miles away...
+
+par(mfrow = c(1,2))
+plot(cust.df$distance.to.store, cust.df$store.spend)
+plot(1/sqrt(cust.df$distance.to.store), cust.df$store.spend)
+# Graphs show the association between variables to be clearer with the inverse transformed data.
+graphics.off()
+
+# Typical marketing data transformations:
+
+# Unit sales, revenue, household income, price    ||||||   log(x)
+# Distance                                        ||||||   1/x, 1/x^2, log(x)
+# Market/preference share based on utility value  ||||||   e^x / (1 + e^x)
+# Right-tail distributions                        ||||||   sqrt(x), log(x)     Warning: log(x =< 0)
+# Left-tail distributions                         ||||||   x^2
+
+# General purpose transofrmation function: 
+
+#
+#
+
+# powerTransform() function:
+library(car)
+powerTransform(cust.df$distance.to.store)   
+# lambda to make distance.to.store similar to Normal Distribution = -0.003696!
+
+lambda <- coef(powerTransform(1/ cust.df$distance.to.store))
+bcPower(cust.df$distance.to.store, lambda)
+
+# Show difference in distributions between untransformed and untransformed:
+par(mfrow = c(1,2))
+hist(cust.df$distance.to.store, xlab = "Distance to Nearest Store", ylab = "Count of Customers",
+     main = "Original Distribution")
+hist(bcPower(cust.df$distance.to.store, lambda), xlab = "Box-Cox Transform of Distance",
+     ylab = "Count of Customers", main = "Transformed Distribution")
+graphics.off()
+
+par(mfrow = c(1,2))
+
+cust.df %>% 
+  ggplot(aes(distance.to.store)) + geom_histogram(binwidth = 5) + 
+  xlab("Distance to Nearest Store") + 
+  ylab("Count of Customers")
+#
+cust.df %>% 
+  ggplot(aes(bcPower(cust.df$distance.to.store, lambda))) + geom_histogram(binwidth = 0.1) + 
+  xlab("Box-Cox Transform of Distance") + ylab("Count of Customers")
+
+# IF attempt transform variable already NORMAL distribution, powerTransform() will report lambda = ~1.
+# Ex. Variable - Age:
+powerTransform(cust.df$age) # 1.036
+
+# Compute correlations using transformed variable: 
+l.dist  <- coef(powerTransform(cust.df$distance.to.store)) 
+l.spend <- coef(powerTransform(cust.df$store.spend + 1))
+
+cor(bcPower(cust.df$distance.to.store, l.dist),
+    bcPower(cust.df$store.spend + 1, l.spend))
+# Correlation: -0.4683126, strong negative correlation! 
+
+# Exploring associations in survey responses 
+plot(cust.df$sat.service, cust.df$sat.selection)
+
+# NOT informative, same responses on top of eachother. Can NOT judge strength of association.
+# Use jitter() to move points slightly away from eachother to reveal occurence of each combination of (x,y) values
+plot(jitter(cust.df$sat.selection), jitter(cust.df$sat.service))
+# (2,3) and (3,3) were most common responses. Present positive relationship between satisfaction variables! 
 
 
 
