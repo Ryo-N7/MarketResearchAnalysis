@@ -278,6 +278,9 @@ cor(bcPower(cust.df$distance.to.store, l.dist),
     bcPower(cust.df$store.spend + 1, l.spend))
 # Correlation: -0.4683126, strong negative correlation! 
 
+
+
+
 # Exploring associations in survey responses 
 plot(cust.df$sat.service, cust.df$sat.selection)
 
@@ -287,7 +290,31 @@ plot(jitter(cust.df$sat.selection), jitter(cust.df$sat.service))
 # (2,3) and (3,3) were most common responses. Present positive relationship between satisfaction variables! 
 
 
+# Correlations for ordinal responses:
+# Limited range of rating scales impact ability for computing accurate correlation metrics. 
+# Use polychoric correlation coefficient! 
+# Respondents have continuous values for ratings however limited to selection of discrete values, choice of 
+# points on discrete scale that is closest to their (unobserved) latent continuous values.
+# Polychoric attempts to recover correlations between the unobserved continuous values. 
 
+resp <- !is.na(cust.df$sat.service)
+cor(cust.df$sat.service[resp], cust.df$sat.selection[resp])
+# Pearson coefficient: 0.6013005, strong positive correlation. 
+
+library(psych)
+polychoric(cbind(cust.df$sat.service[resp],
+                 cust.df$sat.selection[resp]))
+# Polychoric correlations 
+# C1   C2  
+# R1 1.00     
+# R2 0.63 1.00
+# with tau of 
+#         1      2    3     4 
+# [1,] -2.11  -0.71  0.45  1.6      sat.service
+# [2,] -0.93   0.16  1.11  2.1      sat.selection
+
+# Polychoric coefficient: 0.63, strong positive correlation!
+# "with tau of" describes how estimated latent values are mapped to the discrete item values. 
 
 
 
