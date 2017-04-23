@@ -133,11 +133,60 @@ summary(seg.df)
 
 
 
+# Data variance by different segments of consumers. 
+# Tailor offerings for certain segments, engage in different ways to reach targetted segment audience. 
+library(tidyverse)
+
+# Data frame indexing:
+# Find rows that match criterion(s), then take summary statistic for matching observations.
+mean(seg.df$income[seg.df$Segment == "Moving up"])   # mean income for "Moving up" segment: 50249.33
+
+seg.df %>% filter(Segment == "Moving up") %>% 
+  summarize(mean_income = mean(income, na.rm = TRUE))   # 50249.33
 
 
+mean(seg.df$income[seg.df$Segment == "Moving up" & 
+                   seg.df$subscribe == "subNo"])        
+# mean income for "Moving up" segment AND subscribe = NO: 50902.45
+
+seg.df %>% filter(Segment == "Moving up", subscribe == "subNo") %>% 
+  summarize(mean_income = mean(income, na.rm = TRUE))   # 50902.45
+
+# Use by(data, indices, function) function:
+by(seg.df$income, seg.df$Segment, mean)
+# seg.df$Segment: Moving up
+# [1] 50249.33
+# --------------------------------------------------------------------------------- 
+# seg.df$Segment: Suburb mix
+# [1] 55033.82
+# --------------------------------------------------------------------------------- 
+# seg.df$Segment: Travelers
+# [1] 50213.94
+# --------------------------------------------------------------------------------- 
+# seg.df$Segment: Urban hip
+# [1] 21681.93
+
+# for multiple factors, supply them in list(): 
+by(seg.df$income, list(seg.df$Segment, seg.df$subscribe), mean)
+# : Moving up
+# : subNo
+# [1] 50902.45
+# --------------------------------------------------------------------------------- 
+# : Suburb mix
+# : subNo
+# [1] 54942.69
+# etc. etc....................
 
 
+aggregate(seg.df$income, list(seg.df$Segment), mean)   # same as above, tidier. result is data frame!
+# Group.1        x
+# 1  Moving up 50249.33
+# 2 Suburb mix 55033.82
+# 3  Travelers 50213.94
+# 4  Urban hip 21681.93
 
 
+seg.df %>% group_by(Segment) %>% 
+  summarize(mean_income = mean(income, na.rm = TRUE)) 
 
 
