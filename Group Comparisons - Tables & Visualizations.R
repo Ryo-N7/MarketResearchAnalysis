@@ -28,7 +28,7 @@ segSDs <- matrix(c(
   5, NA, 12000, NA, NA, NA, 
   2, NA, 5000, NA, NA, NA, 
   8, NA, 21000, NA, NA, NA, 
-  3, NA, 10000, NA, NA, NA), ncol = length(segVars), byrow = TRUE)
+  4, NA, 10000, NA, NA, NA), ncol = length(segVars), byrow = TRUE)
 # Ex. Travelers segment: mean = 58, SD = 8, ~50% = male, avg. income = 64000, SD income = 21000. 
 # Separate data definition and procedural code = ^ease change definitions. 
 
@@ -91,7 +91,9 @@ ifelse(x > 1, "hi", "bye")
 # }
 
 seg.df <- NULL
+
 set.seed(02554)
+
 # iterate over segments and create data for each 
 for (i in seq_along(segNames)) {
   cat(i, segNames[i], "\n")
@@ -110,10 +112,9 @@ for (i in seq_along(segNames)) {
     } else {
       stop("Bad segment data type: ", segVarType[j])
     }}
-}
+seg.df <- rbind(seg.df, this.seg)          # add segment to total dataset
+  }
 
-# add segment to total dataset
-seg.df <- rbind(seg.df, this.seg)
 
 # Explanation: 
 # according to data type (norm, pois, binom), use appropriate RNG function (rnorm, rpois, rbinom).
