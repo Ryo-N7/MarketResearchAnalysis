@@ -189,4 +189,124 @@ aggregate(seg.df$income, list(seg.df$Segment), mean)   # same as above, tidier. 
 seg.df %>% group_by(Segment) %>% 
   summarize(mean_income = mean(income, na.rm = TRUE)) 
 
+aggregate(income ~ Segment, data = seg.df, mean)
+
+# Cross-tabulating in to groups according to factors.
+aggregate(income ~ Segment + ownHome, data = seg.df, mean)   # + subscribe + etc.
+
+seg.df %>% 
+  group_by(Segment, ownHome, subscribe) %>% 
+  summarise(Mean_Income = mean(income, na.rm = TRUE))
+
+# Frequency statistics: 
+with(seg.df, table(Segment, ownHome))
+
+seg.df %>% 
+  group_by(Segment) %>% 
+  count(ownHome)
+
+seg.df %>% 
+  group_by(kids, Segment) %>% 
+  count(kids)
+# OR (depending on which variable for comparison...)
+seg.df %>% 
+  group_by(Segment, kids) %>% 
+  count(kids)
+
+# COunt total number of kids per segment: 
+xtabs(kids ~ Segment, data = seg.df)
+
+aggregate(kids ~ Segment, data = seg.df, sum)
+
+seg.df %>% 
+  group_by(Segment) %>% 
+  summarize(totalkids = sum(kids))
+
+# Visualization by groups: 
+# Use lattice package. 
+install.packages("lattice")
+library(lattice)
+histogram(~subscribe | Segment, data = seg.df)
+
+seg.df %>% 
+  group_by(Segment) %>% 
+  count(subscribe)
+
+seg.df %>% 
+  ggplot(aes(~subscribe), group_by(Segment)) + geom_histogram()
+
+seg.df %>% count(subscribe)
+
+ggplot(data = seg.df, aes(subscribe)) +
+  geom_histogram(stat = "count") +
+  facet_wrap(Segment ~ .)
+
+seg.df %>% 
+  ggplot(aes(x = subscribe, y = )) +
+  geom_histogram() +
+  facet_wrap(Segment ~ .)
+
+# Actual counts rather than proportions.
+histogram(~subscribe | Segment, data = seg.df, type = "count",
+          layout = c(4,1), col = c("burlywood", "darkolivegreen"))
+
+histogram(~subscribe | Segment + ownHome, data = seg.df, type = "count",
+          layout = c(4,1), col = c("burlywood", "darkolivegreen"))
+
+# Only plot "Yes" proportions:
+prop.table(table(seg.df$subscribe, seg.df$Segment), margin = 2)  # margin = 2 (columns), 1 (rows)
+
+prop.table(table(seg.df$subscribe, seg.df$Segment))  # proportion across entire table.
+
+barchart(prop.table(table(seg.df$subscribe, seg.df$Segment), margin = 2)[2,], # select only second row "Yes".
+         xlab = "Subscriber proportion by Segment")
+# x axis start at 0.05 rather than 0. Potentially misleading. Adjust using xlim = c(low, high).
+barchart(prop.table(table(seg.df$subscribe, seg.df$Segment), margin = 2)[2,],
+         xlab = "Subscriber proportion by Segment", xlim = c(0.0, 0.5))
+?barchart
+
+# Visualization of continuous data:
+
+seg.mean <- aggregate(income ~ Segment, data = seg.df, mean)
+barchart(income ~ Segment, data = seg.mean, col = "darkblue")
+# OR use ggplot2
+seg.df %>% group_by(Segment) %>% 
+  summarize(mean_income = mean(income, na.rm = TRUE)) %>% 
+  ggplot(aes(Segment, mean_income)) + geom_bar(stat = "identity")
+
+seg.df %>% group_by(Segment, ownHome) %>% 
+  summarize(mean_income = mean(income, na.rm = TRUE)) %>% 
+  ggplot(aes(Segment, mean_income, fill = factor(ownHome))) + geom_bar(stat = "identity", position = "dodge")
+
+
+# Boxplot for comparing continuous data values. 
+boxplot(income ~ Segment, data = seg.df, yaxt = "n", ylab = "Income ($k)")
+ax.seq <- seq(from = 0, to = 120000, by = 20000)
+axis(side = 2, at = ax.seq, labels = paste(ax.seq/1000, "k", sep = " "), las = 1)
+
+seg.df %>% group_by(Segment) %>% 
+  summarize(mean_income = mean(income, na.rm = TRUE)) %>% 
+  ggplot(aes(Segment, mean_income)) + geom_boxplot()
+
+library(scales)
+seg.df %>% group_by(Segment) %>% 
+  select(income) %>% 
+  ggplot(aes(Segment, income)) + geom_boxplot() +
+  labs(y = "Income") + 
+  scale_y_continuous(label = dollar_format())
+
+# Add in OwnHome
+
+seg.df %>% group_by(Segment, ownHome) %>% 
+  select(income) %>% 
+  ggplot(aes(Segment, income)) + geom_boxplot() +
+  labs(y = "Income") + 
+  scale_y_continuous(label = dollar_format()) +
+  facet_grid(. ~ ownHome)
+
+
+
+
+
+
 
