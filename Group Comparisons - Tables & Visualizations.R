@@ -242,8 +242,8 @@ ggplot(data = seg.df, aes(subscribe)) +
   facet_wrap(Segment ~ .)
 
 seg.df %>% 
-  ggplot(aes(x = subscribe, y = )) +
-  geom_histogram() +
+  ggplot(aes(x = subscribe, y = Segment)) +
+  geom_histogram(stat = "count") +
   facet_wrap(Segment ~ .)
 
 # Actual counts rather than proportions.
