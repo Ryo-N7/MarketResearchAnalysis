@@ -22,6 +22,8 @@ library(ggplot2)
 library(tidyverse)
 library(ggthemes)
 library(scales)
+library(dplyr)
+library(broom)
 
 
 sat.df <- read.csv("~/R materials/MarketResearchAnalysis/rintro-chapter7.csv")
@@ -88,9 +90,46 @@ confint(m1)
 # Assumptions of GLM:
 par(mfrow = c(2,2))
 plot(m1)
-# Residual vs. Fitted plot: residuals are independent
-# Scale-Location plot: sqrt(residual), no clear pattern, if pattern = nonlinear relationship? (heteroskedasticity)
+# Residual vs. Fitted plot: no pattern between fitted (overall satisfaction) and residals (overall satisfaction), residuals are independent (from random error)
+# Scale-Location plot: fitted vs. sqrt(residual), no clear pattern, IF pattern = nonlinear relationship? (heteroskedasticity). Outliers highlighted: rows 103, 149
 # QQ plot: residuals follow normal distribution? Yes. 
 # Residual vs. Leverage plot: Leverage = how much influence individual point has on model coefficient.
+# HIGH residual + HIGH leverage = value has different pattern and undue influence on model coefficients. OUTLIER.
+
+sat.df[c(57, 129, 295), ]
+# Row: 57, 129, 295...  Row 129 = input error???
+
+# OVERALL: model of overall satisfaction ~ rides is reasonable and statistcally sound.
+
+# Fit Multiple Linear Model
+m2 <- lm(overall ~ rides + games + wait + clean, data = sat.df)
+
+m2 <- sat.df %>% do(tidy(lm(overall ~ rides + games + wait + clean, .)))
+m2
+summary(m2)
+
+library(coefplot)
+coefplot(m2, intercept = F, outerCI = 1.96, lwdOuter = 2.5, decreasing = F,  # does NOT in descending order of est. coefficient!!
+         ylab = "Rating of Feature",
+         xlab = "Association with OVerall Satisfaction")
+
+ov <- names(sort(coef(m2), decreasing = T))
+dwplot(m2, order_vars = ov) + theme_bw() + geom_vline(xintercept = 0, lty = 2)   # CORRECT ORDER
+
+# Comparison M1 and M2:
+
+summary(m1)$r.squared         # 0.3433799
+summary(m2)$r.squared         # 0.558621            m2 explains more. ^# of predictors = ^ R^(2)
+# Usage adjusted-r.squared:
+summary(m1)$adj.r.squared     # 0.3420614
+summary(m2)$adj.r.squared     # 0.5550543           m2 explains more of the variance in overall satisfaction
+
+summary(m1)
+summary(m2)
+# Coefficient for 'rides' from 1.7 >>> 0.52 as independent effect of 'rides' taken away by correlated variables of 'games', 'clean', 'wait'
+
+
+
+
 
 
