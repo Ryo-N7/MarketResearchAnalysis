@@ -14,8 +14,6 @@
 
 
 #####
-install.packages("gpairs")
-install.packages("corrplot")
 library(corrplot)
 library(gpairs)
 library(ggplot2)
@@ -63,9 +61,9 @@ sat.df %>% ggplot(aes(rides, overall)) + geom_point()
 # Linear models: 
 # Overall satisfaction to satisfaction with rides:
 lm(overall ~ rides, data = sat.df)
+sat.df %>% do(tidy(lm(overall ~ rides, .)))   # only makes sense to do this if you are subsetting, create graphic, etc. before/after
 # (Intercept)        rides  
 #   -94.962          1.703  
-
 
 m1 <- lm(overall ~ rides, data = sat.df)
 str(m1)
@@ -127,6 +125,104 @@ summary(m2)$adj.r.squared     # 0.5550543           m2 explains more of the vari
 summary(m1)
 summary(m2)
 # Coefficient for 'rides' from 1.7 >>> 0.52 as independent effect of 'rides' taken away by correlated variables of 'games', 'clean', 'wait'
+
+
+plot(sat.df$overall, fitted(m1), col = "red",
+                xlim = c(0, 100), ylim = c(0, 100),
+                xlab = "Actual overall satisfcaction", ylab = "Fitted Overal satisfaction")
+points(sat.df$overall, fitted(m2), col = "blue")
+legend("topleft", legend = c("model 1", "model 2"), 
+       col = c("red", "blue"), pch = 1)
+abline(0 , 1)
+
+
+sat.df %>% ggplot(aes(x = overall)) +
+                  geom_point(aes(y = fitted(m1), color = "m1")) + 
+                  geom_point(aes(y = fitted(m2), color = "m2")) +
+                  labs(x = "Actual Overall Satisfaction", y = "Fitted Overall Satisfaction") +
+                  scale_y_continuous(limits = c(0, 100), breaks = pretty_breaks()) +
+                  scale_x_continuous(limits = c(0, 100), breaks = pretty_breaks()) +
+                  scale_color_manual("", values = c(m1 = "#008B00", m2 = "#CD4F39")) +
+                  geom_abline(intercept = 0, slope = 1)
+                  
+
+m1 <- do(tidy(data.frame(m1)))
+
+m1.df <- augment(m1)
+m2.df <- augment(m2)
+
+ggplot(sat.df, aes(x = overall)) +
+  geom_point(aes(y = fitted(m1), color = I("red"))) + 
+  geom_point(aes(y = fitted(m2), color = I("darkgreen"))) +
+  scale_y_continuous(limits = c(0, 100), breaks = pretty_breaks()) +
+  scale_x_continuous(limits = c(0, 100), breaks = pretty_breaks())
+
+
+
+# ANOVA for testing nested models
+anova(m1, m2)
+# p < 2.2e^-16, REJECT NULL, m2 significantly explains more variation/improves fit than m1. 
+
+
+
+# Predictions with models:
+# Overall rating for customer rated aspectas as 100 pts/each:
+coef(m2)%*%c(1, 100, 100, 100, 100)
+# 90.58612
+
+predict(m2, sat.df[1:10, ])    # predictions for first 10 customers (rows) in data set...
+# OR
+fitted(m2)[1:10]
+
+# Standardizing predictors:
+# Not all variables in data share same scale. ex. rides = 1-10 scale while cleanliness = 1-5 scale.
+# Conversion to units of SD, subtract variable mean from each observation and divide by SD
+(sat.df$rides - mean(sat.df$rides)) / sd(sat.df$rides)
+scale(sat.df$rides)
+
+# drop distance, only use logdist
+sat.std <- sat.df[ , -3]
+# standardize each column:
+sat.std[ , 3:8] <- scale(sat.std[ , 3:8])
+head(sat.std)
+summary(sat.std)   # should have mean of 0...
+
+# Using factors as predictors:
+# Continue to improve upon m2:
+# Satisfaction different for weekend, long-distance, more children customers.
+m3 <- sat.std %>% do(fit = lm(.$overall ~ .$rides + .$games + .$wait + .$clean + .$weekend + .$logdist + .$num.child))
+str(m3)
+
+m3 %>% tidy(fit)     # logdist = 0.064, num.child = 0.2271, weekendYES = -0.04588
+m3 %>% augment(fit)
+m3 %>% glance(fit)   # r^squared: 0.6786, logdist, num.child = SIGNIFICANT (travel faurther, more children = higher overall satisfaction ratings)
+# for weekendYES (1 = WEEKEND, 0 = NOWEEKEND), on avg. those on Weekend rate overall sat. -0.046 std. units lower than those NOT weekend.
+
+m3 %>% augment(fit) %>% head()
+
+summary(aov(overall ~ weekend, data = sat.std))
+summary(lm(overall ~ weekend, data = sat.std))
+
+# Convert nu.child to factor (NOT assume satisfaction UP/DOWN linearly as fct(# of children), same effect for each child...
+sat.std$num.child.factor <- factor(sat.std$num.child)
+sat.std <- sat.std %>% mutate(num.child.factor = factor(num.child))
+
+m4 <- sat.std %>% do(fit = lm(overall ~ rides + games + wait + clean + weekend + logdist + num.child.factor, data = .))
+# adjusted r^squared: 0.77
+
+m4 %>% tidy(fit) # each num.child has own coefficient. comparison of coefficient with BASE LEVEL (parties with zero children.)
+                 # parties with 1 child rate overall sat. on avg. 1.016 sd units higher than parties with ZERO chidlren.
+                 # increase in overall sat. = SAME (+ ~1.00 sd units) regardless of # children in party. 
+                 # Increase of overall sat. same for one child compared to BASE as for five children compared to BASE.
+                 # NOT necessary to estimate a different increase for each incremental number of children.
+                  
+# Create new factor variable 'has.child' set TRUE vs. FALSE 
+sat.std <- sat.std %>% mutate(has.child = factor(num.child > 0))
+
+m5 <- sat.std %>% do(fit = lm(overall ~ rides + games + wait + clean + weekend + logdist + has.child, data = .))
+m5 %>% tidy(fit)   # adjusted r^squared: 0.7713
+
+# negligible change in model fit from simplifying num.child factor. 
 
 
 
